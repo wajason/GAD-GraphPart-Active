@@ -68,6 +68,15 @@ After the experiments are finished, you can generate reports using the included 
     python plot.py
     ```
 
+## 📊 Experimental Results
+
+We evaluate our framework on benchmark datasets. The following learning curves demonstrate that **GraphPart** (Ours) consistently outperforms baselines, especially in low-budget scenarios.
+
+
+ <img width="400" alt="result_disney_gat" src="https://github.com/user-attachments/assets/f37f1a38-9533-4f13-b515-d28c0aa4340d" />   <img width="400" alt="result_disney_sage" src="https://github.com/user-attachments/assets/4e49e061-e1de-458a-946f-6082d3c5b311" /> 
+ <img width="400" alt="result_reddit_gat" src="https://github.com/user-attachments/assets/0275d4aa-d36e-4c67-bdbb-6e38d6221634" />  <img width="400" alt="result_reddit_sage" src="https://github.com/user-attachments/assets/a13633b5-ec1a-4349-b176-eaa793d95a0f" /> 
+
+
 ## 📝 Citation
 
 If you use the core GraphPart algorithm in your research, please cite the original authors:
@@ -81,4 +90,4 @@ If you use the core GraphPart algorithm in your research, please cite the origin
 }
 ```
 
-If you find this GAD adaptation useful, please star this repository.
+If you find this GAD adaptation useful, please star this repository!! Thanks!
