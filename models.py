@@ -43,11 +43,22 @@ class Cluster:
             raise NotImplemented
 
     def train(self, x):
+        # [Fix] 防呆機制：如果剩下的點 (x) 比要分的群 (n_clusters) 還少
+        # 這種情況直接把 n_clusters 降成跟點的數量一樣 (等於全選)
+        if x.shape[0] < self.n_clusters:
+            # 修改 sklearn 內部的參數
+            if self.implementation == 'sklearn':
+                self.model.n_clusters = x.shape[0]
+            # 如果是 faiss 或 cuml，通常比較難動態改，但這裡主要修復 sklearn
+
+        # 原本的邏輯
         if self.implementation == 'sklearn':
             self.model.fit(x)
         elif self.implementation == 'faiss':
             if self.initialization == 'kmeans++':
-                init_centroids = self._kmeans_plusplus(x, self.n_clusters).cpu().numpy()
+                # 注意：這裡也要防呆，不然 _kmeans_plusplus 也會報錯
+                actual_k = min(x.shape[0], self.n_clusters)
+                init_centroids = self._kmeans_plusplus(x, actual_k).cpu().numpy()
             else:
                 init_centroids = None
             self.model.train(x, init_centroids=init_centroids)

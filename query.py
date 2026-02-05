@@ -70,6 +70,8 @@ class ActiveLearning:
             loss.backward()
             optimizer.step()
 
+    """
+    # 舊版本看f1 acc，這對異常偵測不太適合，改成看AUC和AP。
     def evaluate(self):
         self.clf.eval()
         logits = self.clf(self.data.x, self.data.adj_t)
@@ -81,6 +83,32 @@ class ActiveLearning:
             print('Macro-f1 score: {:.4f}'.format(f1))
             print('Micro-f1 score: {:.4f}'.format(acc))
         return f1, acc
+    """
+
+    def evaluate(self):
+        self.clf.eval()
+        with torch.no_grad():
+            logits = self.clf(self.data.x, self.data.adj_t)
+            
+            # [Fix] 異常偵測要看機率值 (Probability)，不能看預測類別
+            # 使用 Softmax 轉成機率
+            probs = torch.nn.functional.softmax(logits, dim=1)
+            
+            # 取出「是異常 (Class 1)」的機率
+            y_probs = probs[:, 1].cpu().numpy()
+            y_true = self.data.y.cpu().numpy()
+            
+            # 計算 ROC-AUC
+            auc = metrics.roc_auc_score(y_true, y_probs)
+            
+            # 順便算個 AP (Average Precision)，這對不平衡資料也很有參考價值
+            ap = metrics.average_precision_score(y_true, y_probs)
+            
+            if self.args.verbose == 2:
+                print('AUC score: {:.4f}'.format(auc))
+                print('AP score:  {:.4f}'.format(ap))
+                
+        return auc, ap
 
     def get_node_representation(self, rep='aggregation', encoder='gcn'):
 
@@ -577,7 +605,7 @@ class ClusterBased(ActiveLearning):
         for center in centers:
             center = center.to(dtype=x.dtype, device=x.device)
             dist_map = torch.linalg.norm(x - center, dim=1)
-            dist_map[indices] = torch.tensor(np.infty, dtype=dist_map.dtype, device=dist_map.device)
+            dist_map[indices] = torch.tensor(np.inf, dtype=dist_map.dtype, device=dist_map.device)
             idx = int(torch.argmin(dist_map))
             indices.append(idx)
 
@@ -641,7 +669,7 @@ class PartitionBased(ActiveLearning):
             # Compensating for the interference across partitions
             dist = None
             if self.compensation > 0:
-                dist_to_center = torch.ones(x.shape[0], dtype=x.dtype, device=x.device) * np.infty
+                dist_to_center = torch.ones(x.shape[0], dtype=x.dtype, device=x.device) * np.inf
                 for idx in indices:
                     dist_to_center = torch.minimum(dist_to_center, torch.linalg.norm(x - x[idx], dim=1))
                 dist = dist_to_center[part_id]
@@ -652,7 +680,7 @@ class PartitionBased(ActiveLearning):
                 dist_map = torch.linalg.norm(xi - center, dim=1)
                 if self.compensation > 0:
                     dist_map -= dist * compensation
-                dist_map[masked_id] = torch.tensor(np.infty, dtype=dist_map.dtype, device=dist_map.device)
+                dist_map[masked_id] = torch.tensor(np.inf, dtype=dist_map.dtype, device=dist_map.device)
                 idx = int(torch.argmin(dist_map))
                 masked_id.append(idx)
                 indices.append(part_id[idx])
